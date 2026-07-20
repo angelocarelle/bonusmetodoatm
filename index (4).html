@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Área VIP — O Código das Binárias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --void:#07080b;
+  --panel:#0f1119;
+  --panel-2:#161923;
+  --panel-3:#1d212c;
+  --line:#262b38;
+  --gold:#e8b23d;
+  --gold-bright:#f6d488;
+  --gold-dim:#8a6a24;
+  --green:#2fbf6f;
+  --green-dim:#1a4a30;
+  --red:#e5484d;
+  --red-dim:#4a1e1f;
+  --ink:#f3efe6;
+  --ink-dim:#a4a8b5;
+  --ink-faint:#686d7a;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--void);
+  color:var(--ink);
+  font-family:'Manrope',sans-serif;
+  line-height:1.6;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+::selection{background:var(--gold);color:#141414;}
+h1,h2,h3,h4{font-family:'Anton',sans-serif;font-weight:400;letter-spacing:0.01em;text-transform:uppercase;}
+.mono{font-family:'JetBrains Mono',monospace;}
+a{color:var(--gold);}
+button{font-family:'Manrope',sans-serif;}
+input,select{font-family:'Manrope',sans-serif;}
+
+.tickerWrap{position:fixed;bottom:0;left:0;right:0;height:46vh;z-index:0;opacity:.55;
+  mask-image:linear-gradient(to top, black 10%, transparent 95%);pointer-events:none;}
+.tickerWrap svg{width:100%;height:100%;display:block;}
+.grid-bg{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(232,178,61,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,178,61,0.035) 1px, transparent 1px);
+  background-size:42px 42px;
+  mask-image:radial-gradient(ellipse 90% 70% at 50% 0%, black 30%, transparent 92%);
+}
+#app{position:relative;z-index:1;min-height:100vh;}
+
+/* ---------- auth screen ---------- */
+.authWrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.authCard{
+  width:100%;max-width:420px;background:rgba(15,17,25,.86);border:1px solid var(--line);
+  border-radius:var(--radius);padding:40px 32px;position:relative;overflow:hidden;backdrop-filter:blur(8px);
+}
+.authCard::before{
+  content:"";position:absolute;top:-60%;left:50%;transform:translateX(-50%);
+  width:340px;height:340px;border-radius:50%;
+  background:radial-gradient(circle, rgba(232,178,61,.14), transparent 70%);
+  pointer-events:none;
+}
+.authEyebrow{color:var(--gold);font-size:11px;letter-spacing:.16em;text-align:center;margin-bottom:10px;}
+.authTitle{font-size:28px;text-align:center;line-height:1.15;color:var(--ink);margin-bottom:12px;}
+.authSub{color:var(--ink-dim);font-size:13.5px;text-align:center;margin-bottom:28px;}
+
+.exclusiveBadge{
+  display:flex;align-items:center;gap:8px;justify-content:center;width:fit-content;margin:0 auto 20px;
+  border:1px solid var(--gold-dim);border-radius:999px;padding:7px 18px;background:rgba(232,178,61,.06);
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;color:var(--gold);
+}
+.pulseDot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulseDot 1.6s infinite;flex-shrink:0;}
+@keyframes pulseDot{
+  0%{box-shadow:0 0 0 0 rgba(47,191,111,.6);}
+  70%{box-shadow:0 0 0 8px rgba(47,191,111,0);}
+  100%{box-shadow:0 0 0 0 rgba(47,191,111,0);}
+}
+.gradTitle{
+  background:linear-gradient(180deg, var(--ink) 0%, var(--gold-bright) 55%, var(--gold-dim) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:11px;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:6px;text-transform:uppercase;}
+.field input{
+  width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;
+  padding:12px 14px;color:var(--ink);font-size:14.5px;outline:none;transition:border-color .15s;
+}
+.field input:focus{border-color:var(--gold-dim);}
+.btnGold{
+  width:100%;background:var(--gold);color:#141414;border:none;border-radius:9px;
+  padding:13px 14px;font-weight:800;font-size:13px;letter-spacing:.06em;cursor:pointer;
+  margin-top:6px;transition:transform .15s, background .15s;
+}
+.btnGold:hover{background:var(--gold-bright);transform:translateY(-1px);}
+.btnGold:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+.linkBtn{display:block;width:100%;text-align:center;background:none;border:none;color:var(--ink-faint);font-size:12.5px;margin-top:16px;cursor:pointer;text-decoration:underline;}
+.linkBtn:hover{color:var(--gold);}
+#authMsg{margin-top:16px;font-size:13px;text-align:center;min-height:18px;}
+#authMsg.err{color:var(--red);}
+#authMsg.ok{color:var(--green);}
+
+/* ---------- shell ---------- */
+.shell{display:flex;min-height:100vh;}
+.sidebar{
+  width:230px;flex-shrink:0;background:rgba(15,17,25,.9);border-right:1px solid var(--line);
+  backdrop-filter:blur(8px);padding:24px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;
+}
+.sideBrand{display:flex;align-items:center;gap:9px;padding:0 6px 24px;border-bottom:1px solid var(--line);margin-bottom:18px;}
+.sideBrand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px rgba(232,178,61,.7);flex-shrink:0;}
+.sideBrand span{font-size:11px;letter-spacing:.05em;color:var(--ink-dim);font-family:'JetBrains Mono',monospace;line-height:1.4;}
+.navItem{
+  display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:9px;color:var(--ink-dim);
+  font-size:13px;font-weight:600;cursor:pointer;margin-bottom:3px;border:1px solid transparent;transition:background .15s,color .15s;
+}
+.navItem svg{flex-shrink:0;}
+.navItem:hover{background:var(--panel-2);color:var(--ink);}
+.navItem.active{background:var(--panel-2);color:var(--gold);border-color:var(--gold-dim);}
+.sideFooter{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);}
+.logoutBtn{
+  width:100%;background:none;border:1px solid var(--line);color:var(--ink-dim);
+  border-radius:8px;padding:10px;font-size:12px;cursor:pointer;letter-spacing:.03em;
+}
+.logoutBtn:hover{border-color:var(--red-dim);color:var(--red);}
+
+.mainCol{flex-grow:1;min-width:0;}
+.topbar{
+  display:none;align-items:center;justify-content:space-between;padding:16px 20px;
+  border-bottom:1px solid var(--line);background:rgba(15,17,25,.9);position:sticky;top:0;z-index:20;
+}
+.hamburger{background:none;border:1px solid var(--line);border-radius:8px;color:var(--ink);width:36px;height:36px;cursor:pointer;}
+.content{max-width:900px;margin:0 auto;padding:44px 32px 80px;}
+
+.pageHead{margin-bottom:32px;}
+.pageEyebrow{color:var(--gold);font-size:11px;letter-spacing:.16em;margin-bottom:8px;}
+.pageTitle{font-size:28px;color:var(--ink);}
+
+/* progress */
+.progressWrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;margin-bottom:28px;}
+.progressTop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;}
+.progressTop h3{font-size:14px;color:var(--ink);}
+.progressPct{font-family:'JetBrains Mono',monospace;color:var(--gold);font-size:13px;}
+.barTrack{height:8px;background:var(--panel-2);border-radius:6px;overflow:hidden;margin-bottom:16px;}
+.barFill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:6px;transition:width .4s ease;}
+.checkRow{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-dim);padding:6px 0;}
+.checkRow .ck{width:16px;height:16px;border-radius:5px;border:1px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;}
+.checkRow.done .ck{background:var(--green-dim);border-color:var(--green);color:var(--green);}
+.checkRow.done{color:var(--ink);}
+
+/* cards grid */
+.cardsGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;}
+.bonusCard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:26px;display:flex;flex-direction:column;gap:12px;}
+.bonusCard .icoWrap{width:42px;height:42px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;}
+.bonusCard h3{font-size:16px;color:var(--ink);}
+.bonusCard p{color:var(--ink-dim);font-size:13px;line-height:1.6;flex-grow:1;}
+.cardBtn{align-self:flex-start;background:var(--gold);color:#141414;border:none;border-radius:8px;padding:10px 16px;font-weight:800;font-size:12px;letter-spacing:.04em;cursor:pointer;transition:transform .15s,background .15s;}
+.cardBtn:hover{background:var(--gold-bright);transform:translateY(-1px);}
+.cardBtn:disabled{opacity:.5;cursor:wait;}
+.cardBtn.secondary{background:var(--panel-2);color:var(--ink);border:1px solid var(--line);}
+.cardBtn.secondary:hover{border-color:var(--gold-dim);background:var(--panel-3);}
+.tinyMsg{font-size:11.5px;color:var(--ink-faint);}
+.tinyMsg.err{color:var(--red);}
+
+/* avisos */
+.avisoCard{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold-dim);border-radius:10px;padding:16px 18px;margin-bottom:12px;}
+.avisoCard h4{font-size:13.5px;color:var(--ink);margin-bottom:5px;text-transform:none;font-family:'Manrope',sans-serif;font-weight:700;}
+.avisoCard p{font-size:12.5px;color:var(--ink-dim);line-height:1.55;}
+.avisoCard .date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:8px;}
+.emptyState{color:var(--ink-faint);font-size:13px;padding:20px 0;text-align:center;}
+
+/* calculadora */
+.calcGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:24px;}
+.calcField label{display:block;font-size:10.5px;letter-spacing:.05em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:6px;}
+.calcField input,.calcField select{width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--ink);font-size:13.5px;}
+.calcTotal{background:var(--panel);border:1px solid var(--gold-dim);border-radius:12px;padding:18px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
+.calcTotal span:first-child{font-size:12px;color:var(--ink-dim);letter-spacing:.04em;}
+.calcTotal span:last-child{font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--gold-bright);}
+.chanceBlock{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:12px;}
+.chanceBlock h5{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:.04em;margin-bottom:10px;}
+.levelRow{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-dim);padding:5px 0;border-bottom:1px solid var(--line);}
+.levelRow:last-child{border-bottom:none;}
+.levelRow.profit{color:var(--green);font-weight:700;}
+.levelRow .lval{font-family:'JetBrains Mono',monospace;}
+
+/* conta */
+.infoRow{display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+.infoRow span:first-child{color:var(--ink-faint);}
+.infoRow span:last-child{color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:12.5px;}
+.accountCard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin-bottom:20px;}
+
+/* ebook modal */
+#ebookModal{position:fixed;inset:0;z-index:200;background:rgba(6,7,10,.92);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px;}
+#ebookModal.open{display:flex;}
+.ebookFrame{width:100%;height:100%;max-width:1100px;background:var(--void);border-radius:12px;border:1px solid var(--line);overflow:hidden;position:relative;}
+.ebookFrame iframe{width:100%;height:100%;border:none;}
+.closeModal{position:absolute;top:14px;right:14px;z-index:2;width:36px;height:36px;border-radius:50%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);font-size:18px;cursor:pointer;}
+
+.loadingScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:13px;letter-spacing:.05em;}
+
+/* ---------- splash ---------- */
+.splashWrap{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:20px;opacity:1;transition:opacity .5s ease;
+}
+.splashWrap.fade{opacity:0;}
+.splashLogo{font-size:clamp(28px,6vw,48px);line-height:1;}
+.splashLogo .gold{color:var(--gold);}
+.splashLogo .white{color:var(--ink);}
+.splashBar{width:200px;height:3px;background:var(--line);border-radius:3px;overflow:hidden;margin:26px auto 18px;}
+.splashBar span{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:3px;animation:splashFill 1.3s ease forwards;}
+@keyframes splashFill{ to{ width:100%; } }
+.splashSub{font-size:11px;letter-spacing:.16em;color:var(--ink-faint);text-transform:uppercase;}
+
+@media (max-width:860px){
+  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .2s ease;z-index:50;box-shadow:0 0 40px rgba(0,0,0,.5);}
+  .sidebar.open{transform:translateX(0);}
+  .topbar{display:flex;}
+  .content{padding:32px 18px 60px;}
+}
+</style>
+</head>
+<body>
+<div class="tickerWrap"><svg id="tickerSvg" viewBox="0 0 1200 300" preserveAspectRatio="none"></svg></div>
+<div class="grid-bg"></div>
+<div id="app">
+  <div class="splashWrap" id="splashScreen">
+    <h1 class="splashLogo"><span class="gold">MÉTODO</span> <span class="white">ATM</span></h1>
+    <div class="splashBar"><span></span></div>
+    <div class="splashSub mono">Preparando sua experiência…</div>
+  </div>
+</div>
+
+<div id="ebookModal">
+  <div class="ebookFrame">
+    <button class="closeModal" id="closeEbookBtn">✕</button>
+    <iframe id="ebookIframe" src="about:blank"></iframe>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   CONFIGURAÇÃO — preencha com os dados do seu projeto Supabase
+   ========================================================= */
+const SUPABASE_URL = "SUA_URL_DO_SUPABASE_AQUI";
+const SUPABASE_ANON_KEY = "SUA_CHAVE_ANON_PUBLICA_AQUI";
+const BUCKET_NAME = "bonus-vip";
+const EBOOK_PATH = "ebook/o-codigo-das-binarias.html";
+const PLANILHA_PATH = "planilha/gestao-atm-angelo-trader.xlsx";
+const SIGNED_URL_EXPIRES_IN = 300;
+/* ========================================================= */
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const app = document.getElementById('app');
+let currentView = 'inicio';
+let sidebarOpen = false;
+
+function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstElementChild; }
+
+/* ---------------- CANDLE BACKGROUND (igual ao ebook original: estático, sem se mover) ---------------- */
+(function(){
+  const svg = document.getElementById('tickerSvg');
+  let x=0, prev=150, html='';
+  for(let i=0;i<60;i++){
+    const open=prev;
+    const close=open + (Math.random()-0.5)*46;
+    const hi=Math.max(open,close)+Math.random()*18;
+    const lo=Math.min(open,close)-Math.random()*18;
+    const up=close>=open;
+    const color= up ? '#2fbf6f' : '#e5484d';
+    const y=(v)=>300-(v);
+    html+=`<line x1="${x+9}" y1="${y(hi)}" x2="${x+9}" y2="${y(lo)}" stroke="${color}" stroke-width="1.5" opacity="0.85"/>`;
+    html+=`<rect x="${x+3}" y="${y(Math.max(open,close))}" width="12" height="${Math.max(2,Math.abs(close-open))}" fill="${color}" opacity="0.85"/>`;
+    prev=close;
+    x+=20;
+  }
+  svg.innerHTML=html;
+})();
+
+/* ---------------- ICONS (inline svg, gold stroke) ---------------- */
+const ICONS = {
+  home:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>',
+  book:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5c3-2 7-2 8 0v14c-1-2-5-2-8 0V5z"/><path d="M20 5c-3-2-7-2-8 0v14c1-2 5-2 8 0V5z"/></svg>',
+  sheet:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
+  calc:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/></svg>',
+  bell:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 20a2 2 0 004 0"/></svg>',
+  user:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>',
+  menu:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>'
+};
+
+/* ---------------- LOGIN / CADASTRO VIEW ---------------- */
+function renderLogin(prefillMsg, mode){
+  mode = mode || 'login';
+  app.innerHTML='';
+
+  const loginBlock = `
+    <form id="loginForm">
+      <div class="field"><label>E-mail</label><input type="email" id="email" autocomplete="email" required></div>
+      <div class="field"><label>Senha</label><input type="password" id="password" autocomplete="current-password" required></div>
+      <button type="submit" class="btnGold" id="loginBtn">ENTRAR</button>
+    </form>
+    <button class="linkBtn" id="forgotBtn">Esqueci minha senha</button>
+    <button class="linkBtn" id="gotoSignupBtn">Ainda não tem conta? Criar conta</button>
+  `;
+
+  const signupBlock = `
+    <form id="signupForm">
+      <div class="field"><label>Código de acesso</label><input type="text" id="accessCode" autocomplete="off" required></div>
+      <div class="field"><label>E-mail</label><input type="email" id="suEmail" autocomplete="email" required></div>
+      <div class="field"><label>Senha</label><input type="password" id="suPassword" autocomplete="new-password" minlength="6" required></div>
+      <button type="submit" class="btnGold" id="signupBtn">CRIAR CONTA</button>
+    </form>
+    <button class="linkBtn" id="gotoLoginBtn">Já tem conta? Entrar</button>
+  `;
+
+  const view = el(`
+    <div class="authWrap">
+      <div class="authCard">
+        <div class="exclusiveBadge"><span class="pulseDot"></span>ÁREA EXCLUSIVA</div>
+        <div class="authEyebrow mono">ÁREA DE MEMBROS</div>
+        <h1 class="authTitle gradTitle">O Código<br>das Binárias</h1>
+        <p class="authSub">${mode==='login' ? 'Acesso exclusivo para alunos — ebook interativo, planilha de gestão e ferramentas.' : 'Use o código de acesso que você recebeu na compra para criar sua conta.'}</p>
+        ${mode==='login' ? loginBlock : signupBlock}
+        <div id="authMsg" class="mono"></div>
+      </div>
+    </div>
+  `);
+  app.appendChild(view);
+  if(prefillMsg){ const m=document.getElementById('authMsg'); m.textContent=prefillMsg.text; m.className='mono '+(prefillMsg.type||''); }
+
+  if(mode==='login'){
+    document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const email=document.getElementById('email').value.trim();
+      const password=document.getElementById('password').value;
+      const btn=document.getElementById('loginBtn'); const msg=document.getElementById('authMsg');
+      btn.disabled=true; btn.textContent='ENTRANDO…'; msg.textContent=''; msg.className='mono';
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if(error){ msg.textContent='E-mail ou senha inválidos.'; msg.className='mono err'; btn.disabled=false; btn.textContent='ENTRAR'; }
+    });
+
+    document.getElementById('forgotBtn').addEventListener('click', async ()=>{
+      const email=document.getElementById('email').value.trim();
+      const msg=document.getElementById('authMsg');
+      if(!email){ msg.textContent='Digite seu e-mail acima primeiro.'; msg.className='mono err'; return; }
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if(error){ msg.textContent='Não foi possível enviar o link.'; msg.className='mono err'; }
+      else{ msg.textContent='Enviamos um link de redefinição para o seu e-mail.'; msg.className='mono ok'; }
+    });
+
+    document.getElementById('gotoSignupBtn').addEventListener('click', ()=> renderLogin(null, 'signup'));
+  } else {
+    document.getElementById('signupForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const code=document.getElementById('accessCode').value.trim();
+      const email=document.getElementById('suEmail').value.trim();
+      const password=document.getElementById('suPassword').value;
+      const btn=document.getElementById('signupBtn'); const msg=document.getElementById('authMsg');
+      btn.disabled=true; btn.textContent='VERIFICANDO CÓDIGO…'; msg.textContent=''; msg.className='mono';
+
+      try{
+        const { data: valid, error: codeErr } = await supabase.rpc('validate_access_code', { p_code: code });
+        if(codeErr) throw codeErr;
+        if(!valid){
+          msg.textContent='Código de acesso inválido ou já utilizado.'; msg.className='mono err';
+          btn.disabled=false; btn.textContent='CRIAR CONTA';
+          return;
+        }
+        btn.textContent='CRIANDO CONTA…';
+        const { error: signErr } = await supabase.auth.signUp({ email, password });
+        if(signErr){
+          msg.textContent = signErr.message.includes('already') ? 'Este e-mail já possui conta.' : 'Não foi possível criar a conta.';
+          msg.className='mono err'; btn.disabled=false; btn.textContent='CRIAR CONTA';
+          return;
+        }
+        msg.textContent='Conta criada! Você já pode entrar.'; msg.className='mono ok';
+        setTimeout(()=> renderLogin({text:'Conta criada com sucesso — faça login.', type:'ok'}, 'login'), 900);
+      }catch(err){
+        msg.textContent='Não foi possível verificar o código agora.'; msg.className='mono err';
+        btn.disabled=false; btn.textContent='CRIAR CONTA';
+      }
+    });
+
+    document.getElementById('gotoLoginBtn').addEventListener('click', ()=> renderLogin(null, 'login'));
+  }
+}
+
+/* ---------------- ACTIVITY / PROGRESS ---------------- */
+async function getActivity(userId){
+  const { data } = await supabase.from('user_activity').select('*').eq('user_id', userId).maybeSingle();
+  return data || { ebook_opened_at:null, planilha_downloaded_at:null };
+}
+async function markActivity(userId, field){
+  await supabase.from('user_activity').upsert({ user_id:userId, [field]: new Date().toISOString() });
+}
+
+/* ---------------- SHELL + ROUTER ---------------- */
+async function renderShell(session){
+  app.innerHTML='';
+  const emailName = session.user.email.split('@')[0];
+  const shell = el(`
+    <div class="shell">
+      <div class="sidebar" id="sidebar">
+        <div class="sideBrand"><div class="dot"></div><span>O CÓDIGO DAS<br>BINÁRIAS — VIP</span></div>
+        <div id="navItems"></div>
+        <div class="sideFooter"><button class="logoutBtn" id="logoutBtn">SAIR</button></div>
+      </div>
+      <div class="mainCol">
+        <div class="topbar">
+          <button class="hamburger" id="hamburgerBtn">${ICONS.menu}</button>
+          <span class="mono" style="font-size:12px;color:var(--ink-dim)">VIP</span>
+          <div style="width:36px"></div>
+        </div>
+        <div class="content" id="content"></div>
+      </div>
+    </div>
+  `);
+  app.appendChild(shell);
+
+  const navDefs = [
+    {id:'inicio', label:'Início', icon:ICONS.home},
+    {id:'ebook', label:'Ebook interativo', icon:ICONS.book},
+    {id:'planilha', label:'Planilha de gestão', icon:ICONS.sheet},
+    {id:'calculadora', label:'Calculadora de Soros', icon:ICONS.calc},
+    {id:'avisos', label:'Avisos', icon:ICONS.bell},
+    {id:'conta', label:'Minha conta', icon:ICONS.user},
+  ];
+  const navHost = document.getElementById('navItems');
+  navDefs.forEach(n=>{
+    const b = el(`<div class="navItem${n.id===currentView?' active':''}" data-view="${n.id}">${n.icon}<span>${n.label}</span></div>`);
+    b.addEventListener('click', ()=>{ currentView=n.id; sidebarOpen=false; document.getElementById('sidebar').classList.remove('open'); renderShell(session); });
+    navHost.appendChild(b);
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async ()=>{ await supabase.auth.signOut(); });
+  document.getElementById('hamburgerBtn').addEventListener('click', ()=>{
+    sidebarOpen=!sidebarOpen; document.getElementById('sidebar').classList.toggle('open', sidebarOpen);
+  });
+  if(sidebarOpen) document.getElementById('sidebar').classList.add('open');
+
+  const content = document.getElementById('content');
+  const activity = await getActivity(session.user.id);
+
+  if(currentView==='inicio') renderInicio(content, session, emailName, activity);
+  else if(currentView==='ebook') renderEbookView(content, session);
+  else if(currentView==='planilha') renderPlanilhaView(content, session);
+  else if(currentView==='calculadora') renderCalculadora(content);
+  else if(currentView==='avisos') renderAvisos(content);
+  else if(currentView==='conta') renderConta(content, session);
+}
+
+function pageHead(content, eyebrow, title){
+  content.appendChild(el(`<div class="pageHead"><div class="pageEyebrow mono">${eyebrow}</div><h1 class="pageTitle gradTitle">${title}</h1></div>`));
+}
+
+/* ---------------- INÍCIO ---------------- */
+function renderInicio(content, session, emailName, activity){
+  const done = (activity.ebook_opened_at?1:0)+(activity.planilha_downloaded_at?1:0);
+  const pct = Math.round((done/2)*100);
+  pageHead(content, 'BEM-VINDO(A) DE VOLTA', emailName);
+
+  content.appendChild(el(`
+    <div class="progressWrap">
+      <div class="progressTop"><h3>Seu progresso nos bônus</h3><span class="progressPct mono">${pct}%</span></div>
+      <div class="barTrack"><div class="barFill" style="width:${pct}%"></div></div>
+      <div class="checkRow ${activity.ebook_opened_at?'done':''}"><div class="ck">${activity.ebook_opened_at?'✓':''}</div>Ebook interativo acessado</div>
+      <div class="checkRow ${activity.planilha_downloaded_at?'done':''}"><div class="ck">${activity.planilha_downloaded_at?'✓':''}</div>Planilha de gestão baixada</div>
+    </div>
+  `));
+
+  content.appendChild(el(`
+    <div class="cardsGrid">
+      <div class="bonusCard">
+        <div class="icoWrap">${ICONS.book}</div>
+        <h3>Ebook interativo</h3>
+        <p>Padrões de candles, calculadora de Soros e psicologia do trader.</p>
+        <button class="cardBtn secondary" data-goto="ebook">ABRIR</button>
+      </div>
+      <div class="bonusCard">
+        <div class="icoWrap">${ICONS.sheet}</div>
+        <h3>Planilha de gestão</h3>
+        <p>Controle de operações, metas e evolução de banca.</p>
+        <button class="cardBtn secondary" data-goto="planilha">ABRIR</button>
+      </div>
+      <div class="bonusCard">
+        <div class="icoWrap">${ICONS.calc}</div>
+        <h3>Calculadora de Soros</h3>
+        <p>Simule níveis de progressão direto no sistema.</p>
+        <button class="cardBtn secondary" data-goto="calculadora">ABRIR</button>
+      </div>
+    </div>
+  `));
+  content.querySelectorAll('[data-goto]').forEach(b=>{
+    b.addEventListener('click', ()=>{ currentView=b.dataset.goto; renderShell(session); });
+  });
+}
+
+/* ---------------- EBOOK ---------------- */
+function renderEbookView(content, session){
+  pageHead(content, 'BÔNUS 01', 'Ebook interativo');
+  content.appendChild(el(`
+    <div class="bonusCard" style="max-width:480px">
+      <div class="icoWrap">${ICONS.book}</div>
+      <h3>O Código das Binárias</h3>
+      <p>Guia completo em formato interativo: padrões de candles com flip-cards, calculadora de Soros e psicologia do trader.</p>
+      <button class="cardBtn" id="openEbookBtn">ABRIR EBOOK</button>
+      <div class="tinyMsg" id="ebookMsg"></div>
+    </div>
+  `));
+  document.getElementById('openEbookBtn').addEventListener('click', async (e)=>{
+    const btn=e.currentTarget; const msg=document.getElementById('ebookMsg');
+    btn.disabled=true; btn.textContent='ABRINDO…'; msg.textContent='';
+    try{
+      const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(EBOOK_PATH, SIGNED_URL_EXPIRES_IN);
+      if(error) throw error;
+      document.getElementById('ebookIframe').src = data.signedUrl;
+      document.getElementById('ebookModal').classList.add('open');
+      markActivity(session.user.id, 'ebook_opened_at');
+    }catch(err){ msg.textContent='Não foi possível carregar o ebook agora.'; msg.className='tinyMsg err'; }
+    finally{ btn.disabled=false; btn.textContent='ABRIR EBOOK'; }
+  });
+}
+
+/* ---------------- PLANILHA ---------------- */
+function renderPlanilhaView(content, session){
+  pageHead(content, 'BÔNUS 02', 'Planilha de gestão ATM');
+  content.appendChild(el(`
+    <div class="bonusCard" style="max-width:480px">
+      <div class="icoWrap">${ICONS.sheet}</div>
+      <h3>Planilha de Gestão ATM</h3>
+      <p>Planilha completa de gestão de banca do Angelo Trader — controle de operações, metas e evolução.</p>
+      <button class="cardBtn secondary" id="downloadPlanilhaBtn">BAIXAR PLANILHA (.XLSX)</button>
+      <div class="tinyMsg" id="planilhaMsg"></div>
+    </div>
+  `));
+  document.getElementById('downloadPlanilhaBtn').addEventListener('click', async (e)=>{
+    const btn=e.currentTarget; const msg=document.getElementById('planilhaMsg');
+    btn.disabled=true; btn.textContent='GERANDO LINK…'; msg.textContent='';
+    try{
+      const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(PLANILHA_PATH, SIGNED_URL_EXPIRES_IN, { download:true });
+      if(error) throw error;
+      const a=document.createElement('a'); a.href=data.signedUrl; a.download=''; document.body.appendChild(a); a.click(); a.remove();
+      markActivity(session.user.id, 'planilha_downloaded_at');
+    }catch(err){ msg.textContent='Não foi possível gerar o link de download.'; msg.className='tinyMsg err'; }
+    finally{ btn.disabled=false; btn.textContent='BAIXAR PLANILHA (.XLSX)'; }
+  });
+}
+
+/* ---------------- CALCULADORA DE SOROS ---------------- */
+function renderCalculadora(content){
+  pageHead(content, 'FERRAMENTA', 'Calculadora de Soros');
+  content.appendChild(el(`
+    <div class="calcGrid">
+      <div class="calcField"><label>Risco (R$)</label><input type="number" id="cRisco" value="100" min="0" step="1"></div>
+      <div class="calcField"><label>Chances</label>
+        <select id="cChances"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select>
+      </div>
+      <div class="calcField"><label>Payout (%)</label><input type="number" id="cPayout" value="85" min="0" max="100" step="1"></div>
+      <div class="calcField"><label>Níveis de Soros</label>
+        <select id="cNiveis"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select>
+      </div>
+    </div>
+    <div class="calcTotal"><span>LUCRO TOTAL ESTIMADO</span><span id="outTotal">R$ 0,00</span></div>
+    <div id="chancesOut"></div>
+  `));
+
+  function calc(){
+    const risco=parseFloat(document.getElementById('cRisco').value)||0;
+    const chances=parseInt(document.getElementById('cChances').value);
+    const payout=(parseFloat(document.getElementById('cPayout').value)||0)/100;
+    const niveis=parseInt(document.getElementById('cNiveis').value);
+    const entradaBase=risco/chances;
+    let totalLucro=0, html='';
+    for(let c=1;c<=chances;c++){
+      let amount=entradaBase;
+      let rows=`<div class="levelRow"><span>Entrada inicial</span><span class="lval">R$ ${amount.toFixed(2)}</span></div>`;
+      for(let n=1;n<=niveis;n++){
+        amount=Math.floor(amount*(1+payout));
+        rows+=`<div class="levelRow"><span>Soros nível ${n}</span><span class="lval">R$ ${amount.toFixed(2)}</span></div>`;
+      }
+      const lucro=amount-entradaBase; totalLucro+=lucro;
+      rows+=`<div class="levelRow profit"><span>Lucro final da chance</span><span class="lval">R$ ${lucro.toFixed(2)}</span></div>`;
+      html+=`<div class="chanceBlock"><h5>${c}ª OPORTUNIDADE — PAYOUT ${(payout*100).toFixed(0)}%</h5>${rows}</div>`;
+    }
+    document.getElementById('outTotal').textContent='R$ '+totalLucro.toFixed(2);
+    document.getElementById('chancesOut').innerHTML=html;
+  }
+  ['cRisco','cChances','cPayout','cNiveis'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', calc);
+    document.getElementById(id).addEventListener('change', calc);
+  });
+  calc();
+}
+
+/* ---------------- AVISOS ---------------- */
+async function renderAvisos(content){
+  pageHead(content, 'MURAL', 'Avisos');
+  const host = el(`<div id="avisosHost"></div>`);
+  content.appendChild(host);
+  const { data, error } = await supabase.from('avisos').select('*').order('created_at', { ascending:false });
+  if(error || !data || data.length===0){
+    host.appendChild(el(`<div class="emptyState">Nenhum aviso por enquanto. Quando tiver novidade, aparece aqui.</div>`));
+    return;
+  }
+  data.forEach(a=>{
+    const date = new Date(a.created_at).toLocaleDateString('pt-BR');
+    host.appendChild(el(`<div class="avisoCard"><h4>${a.title}</h4><p>${a.body}</p><div class="date mono">${date}</div></div>`));
+  });
+}
+
+/* ---------------- CONTA ---------------- */
+function renderConta(content, session){
+  pageHead(content, 'PERFIL', 'Minha conta');
+  const memberSince = new Date(session.user.created_at).toLocaleDateString('pt-BR');
+  content.appendChild(el(`
+    <div class="accountCard">
+      <div class="infoRow"><span>E-mail</span><span>${session.user.email}</span></div>
+      <div class="infoRow"><span>Membro desde</span><span>${memberSince}</span></div>
+    </div>
+    <div class="accountCard" style="max-width:420px">
+      <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:16px">Trocar senha</div>
+      <div class="field"><label>Nova senha</label><input type="password" id="newPass" minlength="6"></div>
+      <button class="btnGold" id="changePassBtn" style="margin-top:4px">SALVAR NOVA SENHA</button>
+      <div class="tinyMsg" id="passMsg" style="margin-top:10px"></div>
+    </div>
+  `));
+  document.getElementById('changePassBtn').addEventListener('click', async ()=>{
+    const pass = document.getElementById('newPass').value;
+    const msg = document.getElementById('passMsg');
+    if(!pass || pass.length<6){ msg.textContent='A senha precisa ter ao menos 6 caracteres.'; msg.className='tinyMsg err'; return; }
+    const { error } = await supabase.auth.updateUser({ password: pass });
+    if(error){ msg.textContent='Não foi possível trocar a senha.'; msg.className='tinyMsg err'; }
+    else{ msg.textContent='Senha atualizada com sucesso.'; msg.className='tinyMsg'; document.getElementById('newPass').value=''; }
+  });
+}
+
+document.getElementById('closeEbookBtn').addEventListener('click', ()=>{
+  document.getElementById('ebookModal').classList.remove('open');
+  document.getElementById('ebookIframe').src='about:blank';
+});
+
+/* ---------------- SESSION ROUTER (com splash inicial) ---------------- */
+let splashDone = false;
+const SPLASH_MIN_MS = 1400;
+const splashTimer = new Promise(resolve => setTimeout(resolve, SPLASH_MIN_MS));
+
+function finishSplashThen(fn){
+  splashTimer.then(()=>{
+    splashDone = true;
+    const s = document.getElementById('splashScreen');
+    if(s){
+      s.classList.add('fade');
+      setTimeout(fn, 480);
+    }else{
+      fn();
+    }
+  });
+}
+
+let hasRoutedOnce = false;
+supabase.auth.onAuthStateChange((event, session)=>{
+  if(!hasRoutedOnce) return; // a checagem inicial abaixo cuida da primeira renderização
+  if(session){ currentView='inicio'; renderShell(session); } else { renderLogin(); }
+});
+
+supabase.auth.getSession().then(({ data })=>{
+  finishSplashThen(()=>{
+    hasRoutedOnce = true;
+    if(data.session){ renderShell(data.session); } else { renderLogin(); }
+  });
+});
+</script>
+</body>
+</html>
