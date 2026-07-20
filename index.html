@@ -525,7 +525,12 @@ function renderEbookView(content, session){
     try{
       const { data, error } = await supabaseClient.storage.from(BUCKET_NAME).createSignedUrl(EBOOK_PATH, SIGNED_URL_EXPIRES_IN);
       if(error) throw error;
-      document.getElementById('ebookIframe').src = data.signedUrl;
+      const resp = await fetch(data.signedUrl);
+      if(!resp.ok) throw new Error('download falhou');
+      const htmlText = await resp.text();
+      const iframe = document.getElementById('ebookIframe');
+      iframe.removeAttribute('src');
+      iframe.srcdoc = htmlText;
       document.getElementById('ebookModal').classList.add('open');
       markActivity(session.user.id, 'ebook_opened_at');
     }catch(err){ msg.textContent='Não foi possível carregar o ebook agora.'; msg.className='tinyMsg err'; }
@@ -652,7 +657,9 @@ function renderConta(content, session){
 
 document.getElementById('closeEbookBtn').addEventListener('click', ()=>{
   document.getElementById('ebookModal').classList.remove('open');
-  document.getElementById('ebookIframe').src='about:blank';
+  const iframe = document.getElementById('ebookIframe');
+  iframe.removeAttribute('srcdoc');
+  iframe.src='about:blank';
 });
 
 /* ---------------- SESSION ROUTER (com splash inicial) ---------------- */
