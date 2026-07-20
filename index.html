@@ -245,18 +245,24 @@ input,select{font-family:'Manrope',sans-serif;}
 </div>
 
 <script>
+if (window.__ATM_APP_INITIALIZED__) {
+  console.warn('Script já inicializado — execução duplicada ignorada.');
+  throw new Error('__ATM_APP_ALREADY_INITIALIZED__');
+}
+window.__ATM_APP_INITIALIZED__ = true;
+
 /* =========================================================
    CONFIGURAÇÃO — preencha com os dados do seu projeto Supabase
    ========================================================= */
-const SUPABASE_URL = "https://punvwvjdaytqrjddtpuq.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_AOYiqgXRb3YttTO8vv9uuA_jL3gHi79";
+const SUPABASE_URL = "SUA_URL_DO_SUPABASE_AQUI";
+const SUPABASE_ANON_KEY = "SUA_CHAVE_ANON_PUBLICA_AQUI";
 const BUCKET_NAME = "bonus-vip";
-const EBOOK_PATH = "ebook.o-codigo-das-binarias.html";
-const PLANILHA_PATH = "planilha.gestao-atm-angelo-trader.xlsx";
+const EBOOK_PATH = "ebook/o-codigo-das-binarias.html";
+const PLANILHA_PATH = "planilha/gestao-atm-angelo-trader.xlsx";
 const SIGNED_URL_EXPIRES_IN = 300;
 /* ========================================================= */
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const app = document.getElementById('app');
 let currentView = 'inicio';
 let sidebarOpen = false;
@@ -341,7 +347,7 @@ function renderLogin(prefillMsg, mode){
       const password=document.getElementById('password').value;
       const btn=document.getElementById('loginBtn'); const msg=document.getElementById('authMsg');
       btn.disabled=true; btn.textContent='ENTRANDO…'; msg.textContent=''; msg.className='mono';
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if(error){ msg.textContent='E-mail ou senha inválidos.'; msg.className='mono err'; btn.disabled=false; btn.textContent='ENTRAR'; }
     });
 
@@ -349,7 +355,7 @@ function renderLogin(prefillMsg, mode){
       const email=document.getElementById('email').value.trim();
       const msg=document.getElementById('authMsg');
       if(!email){ msg.textContent='Digite seu e-mail acima primeiro.'; msg.className='mono err'; return; }
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
       if(error){ msg.textContent='Não foi possível enviar o link.'; msg.className='mono err'; }
       else{ msg.textContent='Enviamos um link de redefinição para o seu e-mail.'; msg.className='mono ok'; }
     });
@@ -365,7 +371,7 @@ function renderLogin(prefillMsg, mode){
       btn.disabled=true; btn.textContent='VERIFICANDO CÓDIGO…'; msg.textContent=''; msg.className='mono';
 
       try{
-        const { data: valid, error: codeErr } = await supabase.rpc('validate_access_code', { p_code: code });
+        const { data: valid, error: codeErr } = await supabaseClient.rpc('validate_access_code', { p_code: code });
         if(codeErr) throw codeErr;
         if(!valid){
           msg.textContent='Código de acesso inválido ou já utilizado.'; msg.className='mono err';
@@ -373,7 +379,7 @@ function renderLogin(prefillMsg, mode){
           return;
         }
         btn.textContent='CRIANDO CONTA…';
-        const { error: signErr } = await supabase.auth.signUp({ email, password });
+        const { error: signErr } = await supabaseClient.auth.signUp({ email, password });
         if(signErr){
           msg.textContent = signErr.message.includes('already') ? 'Este e-mail já possui conta.' : 'Não foi possível criar a conta.';
           msg.className='mono err'; btn.disabled=false; btn.textContent='CRIAR CONTA';
@@ -393,11 +399,11 @@ function renderLogin(prefillMsg, mode){
 
 /* ---------------- ACTIVITY / PROGRESS ---------------- */
 async function getActivity(userId){
-  const { data } = await supabase.from('user_activity').select('*').eq('user_id', userId).maybeSingle();
+  const { data } = await supabaseClient.from('user_activity').select('*').eq('user_id', userId).maybeSingle();
   return data || { ebook_opened_at:null, planilha_downloaded_at:null };
 }
 async function markActivity(userId, field){
-  await supabase.from('user_activity').upsert({ user_id:userId, [field]: new Date().toISOString() });
+  await supabaseClient.from('user_activity').upsert({ user_id:userId, [field]: new Date().toISOString() });
 }
 
 /* ---------------- SHELL + ROUTER ---------------- */
@@ -438,7 +444,7 @@ async function renderShell(session){
     navHost.appendChild(b);
   });
 
-  document.getElementById('logoutBtn').addEventListener('click', async ()=>{ await supabase.auth.signOut(); });
+  document.getElementById('logoutBtn').addEventListener('click', async ()=>{ await supabaseClient.auth.signOut(); });
   document.getElementById('hamburgerBtn').addEventListener('click', ()=>{
     sidebarOpen=!sidebarOpen; document.getElementById('sidebar').classList.toggle('open', sidebarOpen);
   });
@@ -517,7 +523,7 @@ function renderEbookView(content, session){
     const btn=e.currentTarget; const msg=document.getElementById('ebookMsg');
     btn.disabled=true; btn.textContent='ABRINDO…'; msg.textContent='';
     try{
-      const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(EBOOK_PATH, SIGNED_URL_EXPIRES_IN);
+      const { data, error } = await supabaseClient.storage.from(BUCKET_NAME).createSignedUrl(EBOOK_PATH, SIGNED_URL_EXPIRES_IN);
       if(error) throw error;
       document.getElementById('ebookIframe').src = data.signedUrl;
       document.getElementById('ebookModal').classList.add('open');
@@ -543,7 +549,7 @@ function renderPlanilhaView(content, session){
     const btn=e.currentTarget; const msg=document.getElementById('planilhaMsg');
     btn.disabled=true; btn.textContent='GERANDO LINK…'; msg.textContent='';
     try{
-      const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(PLANILHA_PATH, SIGNED_URL_EXPIRES_IN, { download:true });
+      const { data, error } = await supabaseClient.storage.from(BUCKET_NAME).createSignedUrl(PLANILHA_PATH, SIGNED_URL_EXPIRES_IN, { download:true });
       if(error) throw error;
       const a=document.createElement('a'); a.href=data.signedUrl; a.download=''; document.body.appendChild(a); a.click(); a.remove();
       markActivity(session.user.id, 'planilha_downloaded_at');
@@ -603,7 +609,7 @@ async function renderAvisos(content){
   pageHead(content, 'MURAL', 'Avisos');
   const host = el(`<div id="avisosHost"></div>`);
   content.appendChild(host);
-  const { data, error } = await supabase.from('avisos').select('*').order('created_at', { ascending:false });
+  const { data, error } = await supabaseClient.from('avisos').select('*').order('created_at', { ascending:false });
   if(error || !data || data.length===0){
     host.appendChild(el(`<div class="emptyState">Nenhum aviso por enquanto. Quando tiver novidade, aparece aqui.</div>`));
     return;
@@ -634,7 +640,7 @@ function renderConta(content, session){
     const pass = document.getElementById('newPass').value;
     const msg = document.getElementById('passMsg');
     if(!pass || pass.length<6){ msg.textContent='A senha precisa ter ao menos 6 caracteres.'; msg.className='tinyMsg err'; return; }
-    const { error } = await supabase.auth.updateUser({ password: pass });
+    const { error } = await supabaseClient.auth.updateUser({ password: pass });
     if(error){ msg.textContent='Não foi possível trocar a senha.'; msg.className='tinyMsg err'; }
     else{ msg.textContent='Senha atualizada com sucesso.'; msg.className='tinyMsg'; document.getElementById('newPass').value=''; }
   });
@@ -664,12 +670,12 @@ function finishSplashThen(fn){
 }
 
 let hasRoutedOnce = false;
-supabase.auth.onAuthStateChange((event, session)=>{
+supabaseClient.auth.onAuthStateChange((event, session)=>{
   if(!hasRoutedOnce) return; // a checagem inicial abaixo cuida da primeira renderização
   if(session){ currentView='inicio'; renderShell(session); } else { renderLogin(); }
 });
 
-supabase.auth.getSession().then(({ data })=>{
+supabaseClient.auth.getSession().then(({ data })=>{
   finishSplashThen(()=>{
     hasRoutedOnce = true;
     if(data.session){ renderShell(data.session); } else { renderLogin(); }
