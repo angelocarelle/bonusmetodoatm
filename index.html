@@ -562,18 +562,20 @@ function renderPlanilhaView(content, session){
 function renderCalculadora(content){
   pageHead(content, 'FERRAMENTA', 'Calculadora de Soros');
   content.appendChild(el(`
-    <div class="calcGrid">
-      <div class="calcField"><label>Risco (R$)</label><input type="number" id="cRisco" value="100" min="0" step="1"></div>
-      <div class="calcField"><label>Chances</label>
-        <select id="cChances"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select>
+    <div>
+      <div class="calcGrid">
+        <div class="calcField"><label>Risco (R$)</label><input type="number" id="cRisco" value="100" min="0" step="1"></div>
+        <div class="calcField"><label>Chances</label>
+          <select id="cChances"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select>
+        </div>
+        <div class="calcField"><label>Payout (%)</label><input type="number" id="cPayout" value="85" min="0" max="100" step="1"></div>
+        <div class="calcField"><label>Níveis de Soros</label>
+          <select id="cNiveis"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select>
+        </div>
       </div>
-      <div class="calcField"><label>Payout (%)</label><input type="number" id="cPayout" value="85" min="0" max="100" step="1"></div>
-      <div class="calcField"><label>Níveis de Soros</label>
-        <select id="cNiveis"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select>
-      </div>
+      <div class="calcTotal"><span>LUCRO TOTAL ESTIMADO</span><span id="outTotal">R$ 0,00</span></div>
+      <div id="chancesOut"></div>
     </div>
-    <div class="calcTotal"><span>LUCRO TOTAL ESTIMADO</span><span id="outTotal">R$ 0,00</span></div>
-    <div id="chancesOut"></div>
   `));
 
   function calc(){
@@ -625,15 +627,17 @@ function renderConta(content, session){
   pageHead(content, 'PERFIL', 'Minha conta');
   const memberSince = new Date(session.user.created_at).toLocaleDateString('pt-BR');
   content.appendChild(el(`
-    <div class="accountCard">
-      <div class="infoRow"><span>E-mail</span><span>${session.user.email}</span></div>
-      <div class="infoRow"><span>Membro desde</span><span>${memberSince}</span></div>
-    </div>
-    <div class="accountCard" style="max-width:420px">
-      <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:16px">Trocar senha</div>
-      <div class="field"><label>Nova senha</label><input type="password" id="newPass" minlength="6"></div>
-      <button class="btnGold" id="changePassBtn" style="margin-top:4px">SALVAR NOVA SENHA</button>
-      <div class="tinyMsg" id="passMsg" style="margin-top:10px"></div>
+    <div>
+      <div class="accountCard">
+        <div class="infoRow"><span>E-mail</span><span>${session.user.email}</span></div>
+        <div class="infoRow"><span>Membro desde</span><span>${memberSince}</span></div>
+      </div>
+      <div class="accountCard" style="max-width:420px">
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:16px">Trocar senha</div>
+        <div class="field"><label>Nova senha</label><input type="password" id="newPass" minlength="6"></div>
+        <button class="btnGold" id="changePassBtn" style="margin-top:4px">SALVAR NOVA SENHA</button>
+        <div class="tinyMsg" id="passMsg" style="margin-top:10px"></div>
+      </div>
     </div>
   `));
   document.getElementById('changePassBtn').addEventListener('click', async ()=>{
